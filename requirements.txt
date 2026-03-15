@@ -1,0 +1,4 @@
+transformers<5
+elevenlabs
+python-dotenv
+pypdf

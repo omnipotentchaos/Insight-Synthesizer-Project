@@ -22,8 +22,7 @@ app.post('/api/synthesize', upload.single('document'), (req, res) => {
     // Call the Python script using the specific virtual environment executable
     // Note: If on Mac/Linux, this path would be './venv/bin/python'
     const pythonExecutable = path.join(__dirname, 'venv', 'Scripts', 'python.exe');
-    const pythonProcess = spawn(pythonExecutable, ['summarizer.py', inputFilePath]);
-
+    const pythonProcess = spawn('python3', ['summarizer.py', inputFilePath]);
     let outputData = '';
 
     // Capture standard output from Python
