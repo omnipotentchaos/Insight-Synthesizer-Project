@@ -97,7 +97,7 @@ if __name__ == "__main__":
         user_text = extract_text(input_file_path)
 
         # 2. Process the text
-        final_result = chunk_and_summarize(user_text)
+        final_result = chunk_and_summarize(user_text, summarizer)
         # 4. Generate Audio
         load_dotenv()
         api_key = os.getenv("ELEVENLABS_API_KEY")
