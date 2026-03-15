@@ -7,7 +7,7 @@ from pypdf import PdfReader
 
 
 # 1. Initialize the pipeline
-summarizer = pipeline("text2text-generation", model="facebook/bart-large-cnn")
+summarizer = pipeline("text2text-generation", model="sshleifer/distilbart-cnn-12-6")
 
 def chunk_and_summarize(text, max_chunk_words=400):
     """Divides a large text into smaller chunks and summarizes each one."""
