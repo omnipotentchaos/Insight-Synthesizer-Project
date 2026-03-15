@@ -4,40 +4,65 @@ from transformers import pipeline
 from dotenv import load_dotenv
 from elevenlabs.client import ElevenLabs
 from pypdf import PdfReader
+import nltk
+from nltk.tokenize import sent_tokenize
+
+try:
+    nltk.data.find('tokenizers/punkt_tab')
+except LookupError:
+    nltk.download('punkt')
+    nltk.download('punkt_tab')
 
 
 # 1. Initialize the pipeline
 summarizer = pipeline("text2text-generation", model="Falconsai/text_summarization")
 
-def chunk_and_summarize(text, max_chunk_words=400):
-    """Divides a large text into smaller chunks and summarizes each one."""
+def chunk_and_summarize(text, summarizer, max_words_per_chunk=300):
+    """Safely chunks text by complete sentences to avoid cutting off mid-word."""
     
-    # Split text into a list of words
-    words = text.split()
+    # 1. Split the entire document into an array of perfect sentences
+    sentences = sent_tokenize(text)
     
-    # Group words into chunks of 'max_chunk_words'
-    chunks = [' '.join(words[i:i + max_chunk_words]) for i in range(0, len(words), max_chunk_words)]
-    
-    full_summary = []
-    print(f"\nDivided text into {len(chunks)} chunks. Processing...\n")
-    
-    for i, chunk in enumerate(chunks):
-        # Dynamically calculate max/min lengths so short chunks don't cause errors
-        chunk_length = len(chunk.split())
-        max_len = min(130, int(chunk_length * 0.6)) 
-        min_len = min(30, int(chunk_length * 0.2))
+    chunks = []
+    current_chunk = []
+    current_word_count = 0
+
+    # 2. Group sentences together until we hit the 300-word safety limit
+    for sentence in sentences:
+        words_in_sentence = len(sentence.split())
         
-        # Generate summary for this specific chunk
-        summary = summarizer(chunk, max_length=max_len, min_length=min_len, do_sample=False)
-        
-        # Extract the text (handles both v4 and v5 transformers output keys)
-        output_text = summary[0].get('generated_text', summary[0].get('summary_text', ''))
-        full_summary.append(output_text)
-        
-        print(f"--> Chunk {i+1} summarized.")
-        
-    # Stitch it all back together
-    return " ".join(full_summary)
+        if current_word_count + words_in_sentence <= max_words_per_chunk:
+            current_chunk.append(sentence)
+            current_word_count += words_in_sentence
+        else:
+            # Chunk is full! Save it and start a new one
+            if current_chunk:
+                chunks.append(" ".join(current_chunk))
+            current_chunk = [sentence]
+            current_word_count = words_in_sentence
+            
+    # Catch any leftover sentences at the end
+    if current_chunk:
+        chunks.append(" ".join(current_chunk))
+
+    # 3. Summarize each safe chunk
+    summarized_text = []
+    for chunk in chunks:
+        # Skip tiny leftover chunks that might break the AI
+        if len(chunk.split()) < 20: 
+            continue
+            
+        summary = summarizer(
+            chunk,
+            max_new_tokens=150,  
+            min_length=30,
+            do_sample=False,
+            truncation=True      # Enforces the hard 512 token limit just in case
+        )
+        summarized_text.append(summary[0]['summary_text'])
+
+    return " ".join(summarized_text)
+
 
 def extract_text(file_path):
     """Extracts text based on file type."""

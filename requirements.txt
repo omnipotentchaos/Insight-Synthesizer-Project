@@ -3,3 +3,4 @@ elevenlabs
 python-dotenv
 pypdf
 safetensors
+nltk
