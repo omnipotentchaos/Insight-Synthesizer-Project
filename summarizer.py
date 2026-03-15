@@ -41,7 +41,11 @@ def chunk_and_summarize(text, max_chunk_words=400):
 
 def extract_text(file_path):
     """Extracts text based on file type."""
-    if file_path.lower().endswith('.pdf'):
+    # 1. Read the first 4 bytes to check the file's "Magic Number"
+    with open(file_path, 'rb') as test_file:
+        is_pdf = test_file.read(4) == b'%PDF'
+        
+    if is_pdf:
         reader = PdfReader(file_path)
         text = ""
         for page in reader.pages:
@@ -54,6 +58,7 @@ def extract_text(file_path):
         with open(file_path, "r", encoding="utf-8") as file:
             return file.read()
 
+            
 if __name__ == "__main__":
     # 1. Get the input file path from the command line argument
     if len(sys.argv) < 2:
